@@ -98,8 +98,8 @@ def createMatrices(sentences, word2Idx, label2Idx, case2Idx,char2Idx):
         caseIndices = []
         charIndices = []
         labelIndices = []
-        
-        for word,char,label in sentence:  
+
+        for word, char, label in sentence:  
             wordCount += 1
             if word in word2Idx:
                 wordIdx = word2Idx[word]
@@ -139,7 +139,7 @@ def iterate_minibatches(dataset,batch_len):
             labels.append(l)
         yield np.asarray(labels),np.asarray(tokens),np.asarray(caseing),np.asarray(char)
 
-def addCharInformatioin(Sentences):
+def addCharInformation(Sentences):
     for i,sentence in enumerate(Sentences):
         for j,data in enumerate(sentence):
             chars = [c for c in data[0]]
