@@ -44,6 +44,7 @@ def get_word_embeddings(filepath, words):
 
 def tag_dataset(model, dataset):
     """
+    tags testset
     """
     correctLabels = []
     predLabels = []
@@ -85,10 +86,11 @@ def get_model(model_number, wordEmbeddings, caseEmbeddings, char2Idx, label2Idx)
     output = TimeDistributed(Dense(len(label2Idx), activation='softmax'))(output)
     model = Model(inputs=[words_input, casing_input, character_input], outputs=[output])
     print(label2Idx.get("I-PER"))
+
     #PersonPrecision
 #    custom_metrics = CustomMetrics(label2Idx)
     model.compile(
-            loss='binary_crossentropy',
+            loss='sparse_categorical_crossentropy',
             optimizer='nadam',
             metrics=["acc"],
     )
@@ -245,7 +247,6 @@ def main(epochs, glove_embeddings_path, i_per_only:bool=True):
 #    print("Test-Data: Prec: %.3f, Rec: %.3f, F1: %.3f" % (pre_test, rec_test, f1_test))
 
 #    model.save(os.path.join(ROOTDIR, "models", "model.h5"))
-
 
 if __name__=="__main__":
 
