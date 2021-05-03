@@ -99,7 +99,10 @@ def createMatrices(sentences, word2Idx, label2Idx, case2Idx,char2Idx):
             wordIndices.append(wordIdx)
             caseIndices.append(getCasing(word, case2Idx))
             charIndices.append(charIdx)
-            labelIndices.append(label2Idx[label.strip()])
+            if label.strip() in label2Idx:
+                labelIndices.append(label2Idx[label.strip()])
+            else:
+                labelIndices.append(label2Idx["O"])
            
         dataset.append([wordIndices, caseIndices, charIndices, labelIndices]) 
         
