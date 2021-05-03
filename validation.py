@@ -1,7 +1,7 @@
 import numpy as np
 
 
-#Method to compute the accruarcy. Call predict_labels to get the labels for the dataset
+# Method to compute accuracy. Call predict_labels to get the labels for the dataset
 def compute_f1(predictions, correct, idx2Label): 
     label_pred = []    
     for sentence in predictions:
@@ -11,9 +11,6 @@ def compute_f1(predictions, correct, idx2Label):
     for sentence in correct:
         label_correct.append([idx2Label[element] for element in sentence])
             
-    
-    #print label_pred
-    #print label_correct
     
     prec = compute_precision(label_pred, label_correct)
     rec = compute_precision(label_correct, label_pred)
