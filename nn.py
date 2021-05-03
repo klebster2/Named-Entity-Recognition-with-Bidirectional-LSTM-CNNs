@@ -1,8 +1,7 @@
 import numpy as np 
-from validation import compute_f1
 from keras.models import Model
 from keras.layers import TimeDistributed,Conv1D,Dense,Embedding,Input,Dropout,LSTM,Bidirectional,MaxPooling1D,Flatten,concatenate
-from prepro import readfile,createBatches,createMatrices,iterate_minibatches,addCharInformation,padding
+from ner_bilstm_cnns.prepro import readfile,createBatches,createMatrices,iterate_minibatches,addCharInformation,padding
 from keras.utils import Progbar
 from keras.preprocessing.sequence import pad_sequences
 from keras.initializers import RandomUniform
@@ -241,11 +240,11 @@ def main(epochs, glove_embeddings_path, i_per_only:bool=True):
     )
 
     #   Performance on test dataset
-    predLabels, correctLabels = tag_dataset(model, test_batch)
-    pre_test, rec_test, f1_test = compute_f1(predLabels, correctLabels, idx2Label)
-    print("Test-Data: Prec: %.3f, Rec: %.3f, F1: %.3f" % (pre_test, rec_test, f1_test))
+#    predLabels, correctLabels = tag_dataset(model, test_batch)
+#    pre_test, rec_test, f1_test = compute_f1(predLabels, correctLabels, idx2Label)
+#    print("Test-Data: Prec: %.3f, Rec: %.3f, F1: %.3f" % (pre_test, rec_test, f1_test))
 
-    model.save(os.path.join(ROOTDIR, "models", "model.h5"))
+#    model.save(os.path.join(ROOTDIR, "models", "model.h5"))
 
 
 if __name__=="__main__":
