@@ -99,12 +99,14 @@ def get_model(model_number, wordEmbeddings, caseEmbeddings, char2Idx, label2Idx)
     # plot_model(model, to_file='model.png')
     return model
 
-def train_model(model, epochs, train_batch_len, train_batch, dev_batch_len, dev_batch, idx2Label, label2Idx):
+def train_model(model, model_dir, epochs, train_batch_len, train_batch, 
+        dev_batch_len, dev_batch, idx2Label, label2Idx):
     """
-    train model for n epochs
+    train model for epochs
     """
+    f1_score_best = 0 # set your expectations low and you will be happy
     history = {}
-    for epoch in range(1, epochs):
+    for epoch in range(1, epochs+1):
 
         print("\nTrain Epoch %d/%d"%(epoch,epochs))
         a = Progbar(len(train_batch_len))
@@ -112,12 +114,14 @@ def train_model(model, epochs, train_batch_len, train_batch, dev_batch_len, dev_
         for i, batch in enumerate(iterate_minibatches(train_batch, train_batch_len)):
             labels, tokens, casing, char = batch
 
-            train_batch_results = model.train_on_batch([tokens, casing, char], labels, return_dict=True)
+            train_batch_result = model.train_on_batch([tokens, casing, char], labels, return_dict=True)
 
-            a.update(i, values=train_batch_results.items())
+            a.update(i, values=train_batch_result.items())
+
+        train_epoch_loss = a._values.get("loss")
+        train_epoch_acc = a._values.get("acc")
 
         a.update(i+1)
-
 
         # track dev results
         dev_per = []
@@ -129,14 +133,17 @@ def train_model(model, epochs, train_batch_len, train_batch, dev_batch_len, dev_
             #   Performance on dev dataset
             labels, tokens, casing, char = batch
 
-            test_batch_results = model.test_on_batch([tokens, casing, char], labels, return_dict=True)
+            dev_batch_result = model.test_on_batch([tokens, casing, char], labels, return_dict=True)
 
             y_pred = model.predict([tokens, casing, char], workers=10, use_multiprocessing=True)
             predictions = np.argmax(y_pred, axis=2).flatten()
 
             dev_per.append([labels.flatten(), predictions])
 
-            a.update(i, values=test_batch_results.items())
+            a.update(i, values=dev_batch_result.items())
+
+        dev_epoch_loss = a._values.get("loss")
+        dev_epoch_acc = a._values.get("acc")
 
         a.update(i+1)
 
@@ -146,21 +153,28 @@ def train_model(model, epochs, train_batch_len, train_batch, dev_batch_len, dev_
         metrics_returned = metrics.classification_report(ground_truth, predictions, target_names=[k for k in label2Idx.keys()], digits=4, zero_division=True, output_dict=True)
 
         weighted_avg = metrics_returned.get("I-PER")
+        history.update({epoch:weighted_avg})
+        history.get(epoch).update(
+            {
+                "train_epoch_loss":train_epoch_loss[0]/train_epoch_loss[1],
+                "train_epoch_acc" :train_epoch_acc[0]/train_epoch_acc[1],
+                "dev_epoch_loss"  :dev_epoch_loss[0]/dev_epoch_loss[1],
+                "dev_epoch_acc"   :dev_epoch_acc[0]/dev_epoch_acc[1],
+            }
+        )
+
+        # Use f1 score as only objective measure
+        if weighted_avg.get("f1-score") > f1_score_best:
+            model.save(os.path.join(model_dir, "model.h5"))
+            f1_score_best = weighted_avg.get("f1-score")
 
         print(f'i-per-prec:{weighted_avg.get("precision"):.4f}', end=' ')
         print(f'i-per-recall:{weighted_avg.get("recall"):.4f}', end=' ')
         print(f'i-per-f1-score:{weighted_avg.get("f1-score"):.4f}', end='\n')
 
+    return model, history
 
-        o_weighted_avg = metrics_returned.get("O")
-
-        print(f'o-prec:{o_weighted_avg.get("precision"):.4f}', end=' ')
-        print(f'o-recall:{o_weighted_avg.get("recall"):.4f}', end=' ')
-        print(f'o-f1-score:{o_weighted_avg.get("f1-score"):.4f}', end='\n')
-
-    return model
-
-def get_label_set_and_vocab(trainSentences, devSentences, testSentences, i_per_only):
+def get_label_set_and_vocab(trainSentences, devSentences, testSentences, keep_labels):
     labelSet = set()
     words = {}
     for dataset in [trainSentences, devSentences, testSentences]:
@@ -168,18 +182,13 @@ def get_label_set_and_vocab(trainSentences, devSentences, testSentences, i_per_o
             for token, char, label in sentence:
 
                 # train on I-PER only:
-                if i_per_only and "I-PER" in label:
+                if label.strip() in keep_labels:
                     labelSet.add(label.strip())
-                elif i_per_only:
+                else:
                     labelSet.add("O")
-                elif not i_per_only:
-                    labelSet.add(label.strip())
 
                 words[token.lower()] = True
-
-    if i_per_only:
-        assert len(labelSet)==2, "error, I-PER only True, but labelSet!=2"
-
+   
     return labelSet, words
 
 def get_label2Idx(labelSet):
@@ -200,7 +209,7 @@ def main(epochs, glove_embeddings_path, i_per_only:bool=True):
 
     # :: get lowercase vocab and labelSet (Ent label set) ::
     labelSet, words = \
-      get_label_set_and_vocab(trainSentences, devSentences, testSentences, i_per_only)
+      get_label_set_and_vocab(trainSentences, devSentences, testSentences, set(["I-PER", "O"]))
 
     # :: Create a mapping for the labels ::
     label2Idx = get_label2Idx(labelSet)
@@ -230,7 +239,7 @@ def main(epochs, glove_embeddings_path, i_per_only:bool=True):
 
     model = get_model(1, wordEmbeddings, caseEmbeddings, char2Idx, label2Idx)
 
-    model = train_model(
+    model, stats = train_model(
             model,
             epochs,
             train_batch_len,

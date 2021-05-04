@@ -3,7 +3,6 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 from keras.models import load_model
 from keras.preprocessing.sequence import pad_sequences
-from nltk import word_tokenize
 
 class Parser:
 
@@ -16,6 +15,7 @@ class Parser:
         self.case2Idx = {'numeric': 0, 'allLower':1, 'allUpper':2, 'initialUpper':3, 'other':4, 'mainly_numeric':5, 'contains_digit': 6, 'PADDING_TOKEN':7}
 
     def load_models(self, loc=None):
+
         if not loc:
             loc = os.path.join(os.path.expanduser('~'), '.ner_model')
         self.model = load_model(os.path.join(loc,"model.h5"))
@@ -82,8 +82,7 @@ class Parser:
         Sentence[2] = pad_sequences(Sentence[2],52,padding='post')
         return Sentence
 
-    def predict(self,Sentence):
-        Sentence = words =  word_tokenize(Sentence)
+    def predict(self, Sentence):
         Sentence = self.addCharInformation(Sentence)
         Sentence = self.padding(self.createTensor(Sentence,self.word2Idx,self.case2Idx,self.char2Idx))
         tokens, casing,char = Sentence
