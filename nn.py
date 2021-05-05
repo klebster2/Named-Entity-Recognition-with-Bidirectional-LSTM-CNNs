@@ -49,6 +49,7 @@ def tag_dataset(model, dataset):
     correctLabels = []
     predLabels = []
     b = Progbar(len(dataset))
+    import pdb; pdb.set_trace()
     for i, data in enumerate(dataset):    
         tokens, casing, char, labels = data
         tokens = np.asarray([tokens])     
@@ -85,7 +86,7 @@ def get_model(model_number, wordEmbeddings, caseEmbeddings, char2Idx, label2Idx)
     output = Bidirectional(LSTM(200, return_sequences=True, dropout=0.5, recurrent_dropout=0.25))(output)
     output = TimeDistributed(Dense(len(label2Idx), activation='softmax'))(output)
     model = Model(inputs=[words_input, casing_input, character_input], outputs=[output])
-    print(label2Idx.get("I-PER"))
+    print("I-PER is idx ", label2Idx.get("I-PER"))
 
     #PersonPrecision
 #    custom_metrics = CustomMetrics(label2Idx)
@@ -250,8 +251,9 @@ def main(epochs, glove_embeddings_path, i_per_only:bool=True):
             label2Idx,
     )
 
+
     #   Performance on test dataset
-#    predLabels, correctLabels = tag_dataset(model, test_batch)
+    predLabels, correctLabels = tag_dataset(model, test_batch)
 #    pre_test, rec_test, f1_test = compute_f1(predLabels, correctLabels, idx2Label)
 #    print("Test-Data: Prec: %.3f, Rec: %.3f, F1: %.3f" % (pre_test, rec_test, f1_test))
 

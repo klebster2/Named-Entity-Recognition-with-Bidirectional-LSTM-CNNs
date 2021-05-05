@@ -3,6 +3,7 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 from keras.models import load_model
 from keras.preprocessing.sequence import pad_sequences
+from nltk import word_tokenize
 
 class Parser:
 
@@ -20,9 +21,9 @@ class Parser:
             loc = os.path.join(os.path.expanduser('~'), '.ner_model')
         self.model = load_model(os.path.join(loc,"model.h5"))
         # loading word2Idx
-        self.word2Idx = np.load(os.path.join(loc,"word2Idx.npy")).item()
+        self.word2Idx = np.load(os.path.join(loc,"word2Idx.npy"), allow_pickle=True).item()
         # loading idx2Label
-        self.idx2Label = np.load(os.path.join(loc,"idx2Label.npy")).item()
+        self.idx2Label = np.load(os.path.join(loc,"idx2Label.npy"), allow_pickle=True).item()
 
     def getCasing(self,word, caseLookup):   
         casing = 'other'
@@ -68,7 +69,7 @@ class Parser:
                 if x in char2Idx.keys():
                     charIdx.append(char2Idx[x])
                 else:
-                    charIdx.append(char2Idx['UNKNOWN'])   
+                    charIdx.append(char2Idx['UNKNOWN'])
             wordIndices.append(wordIdx)
             caseIndices.append(self.getCasing(word, case2Idx))
             charIndices.append(charIdx)
@@ -82,14 +83,19 @@ class Parser:
         Sentence[2] = pad_sequences(Sentence[2],52,padding='post')
         return Sentence
 
-    def predict(self, Sentence):
+    def predict(self, Sentence, tokenize=True):
+        if tokenize:
+            Sentence = words =  word_tokenize(Sentence)
+        else:
+            Sentence = words =  Sentence
         Sentence = self.addCharInformation(Sentence)
-        Sentence = self.padding(self.createTensor(Sentence,self.word2Idx,self.case2Idx,self.char2Idx))
-        tokens, casing,char = Sentence
-        tokens = np.asarray([tokens])     
+        Sentence = self.padding(self.createTensor(Sentence, self.word2Idx, self.case2Idx, self.char2Idx))
+        tokens, casing, char = Sentence
+        tokens = np.asarray([tokens])
         casing = np.asarray([casing])
         char = np.asarray([char])
-        pred = self.model.predict([tokens, casing,char], verbose=False)[0]   
+        pred = self.model.predict([tokens, casing, char], verbose=False)[0]
         pred = pred.argmax(axis=-1)
         pred = [self.idx2Label[x].strip() for x in pred]
-        return list(zip(words,pred))
+        return list(zip(words, pred))
+
